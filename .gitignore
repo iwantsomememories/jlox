@@ -32,3 +32,6 @@ bin/
 ### IDEA ###
 .idea/
 *.iml
+
+### Lox ###
+*.lox
