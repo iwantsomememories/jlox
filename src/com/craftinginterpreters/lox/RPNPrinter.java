@@ -39,6 +39,22 @@ class RPNPrinter implements Expr.Visitor<String> {
         return builder.toString();
     }
 
+    @Override
+    public String visitTernaryExpr(Expr.Ternary expr) {
+        StringBuilder builder = new StringBuilder();
+
+        builder.append(print(expr.left))
+                .append(" ")
+                .append(expr.middle)
+                .append(" ")
+                .append(expr.right)
+                .append(" ")
+                .append(expr.leftOperator)
+                .append(expr.rightOperator);
+
+        return builder.toString();
+    }
+
     public static void main(String[] args) {
         Expr expression = new Expr.Binary(
                 new Expr.Grouping(
