@@ -11,14 +11,28 @@ public class Parser {
     private final List<Token> tokens;
     private int current = 0;
 
-    Parser(List<Token> tokens) {
+    // used by REPL.
+    private final boolean allowExpr;
+    private Expr lastExpr;
+
+    Expr takeLastExpr() {
+        Expr tmp = this.lastExpr;
+        this.lastExpr = null;
+        return tmp;
+    }
+
+    Parser(List<Token> tokens, boolean allowExpr) {
         this.tokens = tokens;
+        this.allowExpr = allowExpr;
     }
 
     List<Stmt> parse() {
         List<Stmt> statements = new ArrayList<>();
         while (!isAtEnd()) {
-            statements.add(declaration());
+            Stmt stmt = declaration();
+            if (stmt != null) {
+                statements.add(stmt);
+            }
         }
 
         return statements;
@@ -66,8 +80,23 @@ public class Parser {
 
     private Stmt expressionStatement() {
         Expr expr = expression();
-        consume(SEMICOLON, "Expect ';' after expression.");
-        return new Stmt.Expression(expr);
+
+        if (!allowExpr) {
+            consume(SEMICOLON, "Expect ';' after expression.");
+            return new Stmt.Expression(expr);
+        } else {
+            if (check(SEMICOLON)) {
+                advance();
+                return new Stmt.Expression(expr);
+            }
+
+            if (!isAtEnd()) {
+                throw error(peek(), "Expect 'EOF' after last expression in REPL.");
+            }
+            lastExpr = expr;
+
+            return null;
+        }
     }
 
     private List<Stmt> block() {

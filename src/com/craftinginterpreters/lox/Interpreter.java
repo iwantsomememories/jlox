@@ -5,10 +5,14 @@ import java.util.List;
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private Environment environment = new Environment();
 
-    void interpret(List<Stmt> statements) {
+    void interpret(List<Stmt> statements, Expr expr) {
         try {
             for (Stmt statement : statements) {
                 execute(statement);
+            }
+
+            if (expr != null) {
+                System.out.println(stringify(evaluate(expr)));
             }
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
