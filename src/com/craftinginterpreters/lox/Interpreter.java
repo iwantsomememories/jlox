@@ -5,6 +5,9 @@ import java.util.List;
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     private Environment environment = new Environment();
 
+    // used by break.
+    private int breakDepth = 0;
+
     void interpret(List<Stmt> statements, Expr expr) {
         try {
             for (Stmt statement : statements) {
@@ -56,6 +59,10 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
         return environment.get(expr.name);
+    }
+
+    private boolean checkBreak() {
+        return breakDepth > 0;
     }
 
     private void checkNumberOperand(Token operator, Object operand) {
@@ -117,6 +124,9 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
             for (Stmt statement : statements) {
                 execute(statement);
+                if (checkBreak()) {
+                    return;
+                }
             }
         } finally {
             this.environment = previous;
@@ -126,6 +136,12 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
         executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
+    @Override
+    public Void visitBreakStmt(Stmt.Break stmt) {
+        breakDepth++;
         return null;
     }
 
@@ -167,6 +183,10 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     public Void visitWhileStmt(Stmt.While stmt) {
         while (isTruthy(evaluate(stmt.condition))) {
             execute(stmt.body);
+            if (checkBreak()) {
+                breakDepth--;
+                return null;
+            }
         }
 
         return null;
