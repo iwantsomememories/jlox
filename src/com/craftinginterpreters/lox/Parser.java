@@ -197,23 +197,28 @@ public class Parser {
         }
     }
 
-    private Stmt.Function function(String kind) {
-        Token name = consume(IDENTIFIER, "Expect " + kind + " name.");
-        consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
-        List<Token> parameters = new ArrayList<>();
-        if (!check(RIGHT_PAREN)) {
-            do {
-                if (parameters.size() >= 255) {
-                    error(peek(), "Can't have more than 255 parameters.");
-                }
+    private Stmt function(String kind) {
+        if (match(IDENTIFIER)) {
+            Token name = previous();
+            consume(LEFT_PAREN, "Expect '(' after " + kind + " name.");
+            List<Token> parameters = new ArrayList<>();
+            if (!check(RIGHT_PAREN)) {
+                do {
+                    if (parameters.size() >= 255) {
+                        error(peek(), "Can't have more than 255 parameters.");
+                    }
 
-                parameters.add(consume(IDENTIFIER, "Expect parameter name."));
-            } while (match(COMMA));
+                    parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+                } while (match(COMMA));
+            }
+            consume(RIGHT_PAREN, "Expect ')' after parameters.");
+            consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
+            List<Stmt> body = block();
+            return new Stmt.Function(name, parameters, body);
+        } else {
+            retreat();
+            return expressionStatement();
         }
-        consume(RIGHT_PAREN, "Expect ')' after parameters.");
-        consume(LEFT_BRACE, "Expect '{' before " + kind + " body.");
-        List<Stmt> body = block();
-        return new Stmt.Function(name, parameters, body);
     }
 
     private List<Stmt> block() {
@@ -442,6 +447,7 @@ public class Parser {
 
     private Expr primary() {
         if (match(FALSE)) return new Expr.Literal(false);
+        if (match(FUN)) return lambda();
         if (match(TRUE)) return new Expr.Literal(true);
         if (match(NIL)) return new Expr.Literal(null);
 
@@ -460,6 +466,24 @@ public class Parser {
         }
 
         throw error(peek(), "Expect expression.");
+    }
+
+    private Expr.Lambda lambda() {
+        consume(LEFT_PAREN, "Expect '(' after fun of lambda.");
+        List<Token> parameters = new ArrayList<>();
+        if (!check(RIGHT_PAREN)) {
+            do {
+                if (parameters.size() >= 255) {
+                    error(peek(), "Can't have more than 255 parameters.");
+                }
+
+                parameters.add(consume(IDENTIFIER, "Expect parameter name."));
+            } while (match(COMMA));
+        }
+        consume(RIGHT_PAREN, "Expect ')' after parameters.");
+        consume(LEFT_BRACE, "Expect '{' before lambda body.");
+        List<Stmt> body = block();
+        return new Expr.Lambda(parameters, body);
     }
 
     private boolean match(TokenType... types) {
@@ -487,6 +511,12 @@ public class Parser {
     private Token advance() {
         if (!isAtEnd()) current++;
         return previous();
+    }
+
+    private void retreat() {
+        if (current > 0) {
+            current--;
+        }
     }
 
     private boolean isAtEnd() {
