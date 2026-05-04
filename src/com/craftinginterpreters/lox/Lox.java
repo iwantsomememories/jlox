@@ -16,6 +16,11 @@ public class Lox {
 
     static boolean hadRuntimeError = false;
 
+    private enum Hint {
+        ERROR,
+        WARN;
+    }
+
     public static void main(String[] args) throws IOException {
         if (args.length > 1) {
             System.out.println("Usage: jlox [script]");
@@ -58,11 +63,20 @@ public class Lox {
         // Stop if there was a syntax error.
         if (hadError) return;
 
+        Resolver resolver = new Resolver(interpreter);
+        resolver.resolve(statements);
+
+        if (hadError) return;
+
         interpreter.interpret(statements, parser.takeLastExpr());
     }
 
     static void error(int line, String message) {
-        report(line, "", message);
+        report(line, "", message, Hint.ERROR);
+    }
+
+    static void warn(int line, String message) {
+        report(line, "", message, Hint.WARN);
     }
 
     static void runtimeError(RuntimeError error) {
@@ -71,17 +85,19 @@ public class Lox {
         hadRuntimeError = true;
     }
 
-    private static void report(int line, String where, String message) {
+    private static void report(int line, String where, String message, Hint hint) {
         System.err.println(
-                "[line " + line + "] Error" + where + ": " + message);
-        hadError = true;
+                "[line " + line + "] " + hint.toString() + where + ": " + message);
+        if (hint == Hint.ERROR) {
+            hadError = true;
+        }
     }
 
     static void error(Token token, String message) {
         if (token.type == TokenType.EOF) {
-            report(token.line, " at end", message);
+            report(token.line, " at end", message, Hint.ERROR);
         } else {
-            report(token.line, " at '" + token.lexeme + "'", message);
+            report(token.line, " at '" + token.lexeme + "'", message, Hint.ERROR);
         }
     }
 }

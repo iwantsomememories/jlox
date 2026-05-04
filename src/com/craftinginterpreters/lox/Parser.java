@@ -12,9 +12,6 @@ public class Parser {
     private final List<Token> tokens;
     private int current = 0;
 
-    // represents the depth of loop.
-    private int loopDepth = 0;
-
     // used by REPL.
     private final boolean allowExpr;
     private Expr lastExpr;
@@ -94,7 +91,7 @@ public class Parser {
         }
         consume(RIGHT_PAREN, "Expect ')' after for clauses.");
 
-        Stmt body = loopBody();
+        Stmt body = statement();
         if (increment != null) {
             body = new Stmt.Block(Arrays.asList(body, new Stmt.Expression(increment)));
         }
@@ -109,19 +106,10 @@ public class Parser {
         return body;
     }
 
-    private Stmt loopBody() {
-        loopDepth++;
-        Stmt body = statement();
-        loopDepth--;
-        return body;
-    }
-
     private Stmt breakStatement() {
-        if (loopDepth == 0) {
-            throw error(previous(), "Break shouldn't appear outside of any enclosing loop.");
-        }
+        Token keyword = previous();
         consume(SEMICOLON, "Expect ';' after 'break'.");
-        return new Stmt.Break(previous());
+        return new Stmt.Break(keyword);
     }
 
     private Stmt ifStatement() {
@@ -171,7 +159,7 @@ public class Parser {
         consume(LEFT_PAREN, "Expect '(' after 'while'.");
         Expr condition = expression();
         consume(RIGHT_PAREN, "Expect ')' after condition.");
-        Stmt body = loopBody();
+        Stmt body = statement();
 
         return new Stmt.While(condition, body);
     }

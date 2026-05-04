@@ -41,6 +41,42 @@ class Environment {
         }
     }
 
+    Environment ancestor(int distance) {
+        Environment environment = this;
+        for (int i = 0; i < distance; i++) {
+            environment = environment.enclosing;
+        }
+
+        return environment;
+    }
+
+    Object getAt(int distance, Token name) {
+        Environment targetEnvironment = ancestor(distance);
+        if (targetEnvironment.values.containsKey(name.lexeme)) {
+            Pair pair = targetEnvironment.values.get(name.lexeme);
+            if (pair.isInitialized) {
+                return pair.value;
+            }
+
+            throw new RuntimeError(name,
+                    "Uninitialized variable '" + name.lexeme + "'.");
+        }
+
+        throw new RuntimeError(name,
+                "Undefined variable '" + name.lexeme + "'.");
+    }
+
+    void assignAt(int distance, Token name, Object value) {
+        Environment targetEnvironment = ancestor(distance);
+        if (targetEnvironment.values.containsKey(name.lexeme)) {
+            targetEnvironment.values.put(name.lexeme, new Pair(value, true));
+            return;
+        }
+
+        throw new RuntimeError(name,
+                "Undefined variable '" + name.lexeme + "'.");
+    }
+
     void assign(Token name, Object value) {
         if (values.containsKey(name.lexeme)) {
             values.put(name.lexeme, new Pair(value, true));
